@@ -1,11 +1,10 @@
 import {Layer, Source, useMap} from "react-map-gl/maplibre";
 import {useEffect, useState} from "react";
-
-const BASE_URL = 'http://127.0.0.1:8000';
+import {apiUrl} from "@/helpers/api-url";
 
 function stationURL(bounds) {
     const boundsStr = `${bounds._sw.lng},${bounds._sw.lat},${bounds._ne.lng},${bounds._ne.lat}`;
-    return `${BASE_URL}/geojson/stations?bounds=${boundsStr}`;
+    return `${apiUrl()}/geojson/stations?bounds=${boundsStr}`;
 }
 
 export default function LiveStationSource({updateSourceCallback, id}) {

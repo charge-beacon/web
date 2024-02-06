@@ -1,13 +1,12 @@
 "use client";
+import 'maplibre-gl/dist/maplibre-gl.css';
 import {useRef, useState, useCallback} from "react";
 import Navbar from "@/components/navbar";
 import Map, {MapProvider, Popup, NavigationControl, GeolocateControl} from 'react-map-gl/maplibre';
-import LiveStationSource from "@/components/map/LiveStationSource";
-
-import 'maplibre-gl/dist/maplibre-gl.css';
+import LiveStationSource from "@/components/map/live-station-source";
+import {apiUrl} from "@/helpers/api-url";
 
 export const API_KEY = 'NM2bzuwan7L5ET5h10no';
-const BASE_URL = 'http://127.0.0.1:8000';
 
 export default function MapRoute() {
     const [viewState, setViewState] = useState({
@@ -74,7 +73,7 @@ export default function MapRoute() {
         // navigate(`/${station.properties.beacon_name}`);
 
         // Fetch the station data
-        fetch(`${BASE_URL}/station/${station.properties.beacon_name}.json`)
+        fetch(`${apiUrl()}/station/${station.properties.beacon_name}.json`)
             .then(response => response.json())
             .then(data => {
                 if (!data) return;
