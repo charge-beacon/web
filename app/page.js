@@ -1,95 +1,131 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import {useRef, useState, useCallback} from "react";
+import Navbar from "@/components/navbar";
+import Map, {MapProvider, Popup, NavigationControl, GeolocateControl} from 'react-map-gl/maplibre';
+import LiveStationSource from "@/components/map/LiveStationSource";
 
-export default function Home() {
-  return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+import 'maplibre-gl/dist/maplibre-gl.css';
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+export const API_KEY = 'NM2bzuwan7L5ET5h10no';
+const BASE_URL = 'http://127.0.0.1:8000';
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
+export default function MapRoute() {
+    const [viewState, setViewState] = useState({
+        longitude: -122.676483,
+        latitude: 45.523064,
+        zoom: 12
+    });
+    const [selectedStation, setSelectedStation] = useState(null);
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
+    const mapMovedCallbackRef = useRef();
+    const mapRef = useRef();
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
+    const updateMap = (evt) => {
+        setViewState(evt.viewState);
+        if (mapMovedCallbackRef.current) mapMovedCallbackRef.current();
+    }
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+    const onHover = useCallback(event => {
+        const {features} = event;
+        if (features && features.length) {
+            if (mapRef.current) {
+                mapRef.current.getCanvas().style.cursor = 'pointer';
+            }
+        } else {
+            if (mapRef.current) {
+                mapRef.current.getCanvas().style.cursor = '';
+            }
+        }
+    }, []);
+
+    const onClick = useCallback(event => {
+        const {features} = event;
+        if (!features || !features.length) return;
+
+        // If a cluster is clicked, zoom in to the cluster
+        if (features[0].properties.cluster) {
+            const clusterId = features[0].properties.cluster_id;
+            mapRef.current.getSource('stations').getClusterExpansionZoom(
+                clusterId
+            ).then((zoom, err) => {
+                if (err) return;
+                mapRef.current.easeTo({
+                    center: features[0].geometry.coordinates,
+                    zoom: zoom
+                });
+            });
+            return;
+        }
+
+        // If a station is clicked, show the station popup
+        const station = features[0];
+
+        mapRef.current.easeTo({
+            center: station.geometry.coordinates,
+            zoom: 17
+        });
+
+        setSelectedStation({
+            longitude: station.geometry.coordinates[0],
+            latitude: station.geometry.coordinates[1],
+            loading: true
+        });
+
+        // navigate(`/${station.properties.beacon_name}`);
+
+        // Fetch the station data
+        fetch(`${BASE_URL}/station/${station.properties.beacon_name}.json`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data) return;
+                setSelectedStation({
+                    ...data,
+                    loading: false
+                });
+            });
+    }, []);
+
+    let stationPopupContents = null;
+    if (selectedStation !== null && selectedStation.loading) {
+        stationPopupContents = (<strong>Loading...</strong>);
+    } else if (selectedStation !== null) {
+        console.log('selectedStation', selectedStation);
+        stationPopupContents = (
+            <div>
+                <strong>{selectedStation.station_name}</strong>
+                <br/>
+                <em>
+                    {selectedStation.street_address}<br/>
+                    {selectedStation.city}, {selectedStation.state} {selectedStation.zip}
+                </em>
+            </div>
+        );
+    }
+
+    return (
+        <MapProvider>
+            <Navbar/>
+            <Map
+                {...viewState}
+                ref={mapRef}
+                onMove={updateMap}
+                onClick={onClick}
+                onMouseMove={onHover}
+                interactiveLayerIds={['stations-layer']}
+                style={{position: "absolute", top: "52px", width: "100%", height: " calc(100vh - 52px)"}}
+                mapStyle={`https://api.maptiler.com/maps/streets-v2/style.json?key=${API_KEY}`}>
+                <LiveStationSource id="stations" updateSourceCallback={(cb) => mapMovedCallbackRef.current = cb}/>
+                <NavigationControl position="top-right"/>
+                <GeolocateControl position="top-right"/>
+                {selectedStation != null &&
+                    <Popup anchor="top"
+                           offset={[0, 15]}
+                           longitude={selectedStation.longitude}
+                           latitude={selectedStation.latitude}
+                           onClose={() => setSelectedStation(null)}>
+                        {stationPopupContents}
+                    </Popup>}
+            </Map>
+        </MapProvider>
+    );
 }
