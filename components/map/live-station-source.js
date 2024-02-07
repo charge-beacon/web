@@ -42,11 +42,11 @@ export default function LiveStationSource({updateSourceCallback, id}) {
     }, [bounds]);
 
     useEffect(() => {
-        map.loadImage('img/Blue_Location.png').then(({data}, error) => {
+        map.loadImage('/img/Blue_Location.png').then(({data}, error) => {
             if (error) throw error;
             if (!map.hasImage('blue-location')) map.addImage('blue-location', data);
         });
-        map.loadImage('img/Gray_Location.png').then(({data}, error) => {
+        map.loadImage('/img/Gray_Location.png').then(({data}, error) => {
             if (error) throw error;
             if (!map.hasImage('gray-location')) map.addImage('gray-location', data);
         });

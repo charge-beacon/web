@@ -1,4 +1,4 @@
-import Brand from "./brand";
+import Brand from "@/components/brand";
 import Form from "react-bootstrap/Form";
 import BootstrapNavbar from 'react-bootstrap/Navbar';
 import React from "react";

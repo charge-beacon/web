@@ -1,0 +1,9 @@
+.mapPanel {
+    position: absolute;
+    top: 52px;
+    width: 100%;
+    height: calc(100vh - 52px);
+    z-index: 100;
+    background-color: transparent;
+    pointer-events: none;
+}

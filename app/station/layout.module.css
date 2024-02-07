@@ -1,0 +1,6 @@
+.layout {
+    height: 100%;
+    width: 350px;
+    background-color: black;
+    pointer-events: all;
+}
