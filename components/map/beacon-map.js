@@ -1,6 +1,6 @@
 "use client";
 import 'maplibre-gl/dist/maplibre-gl.css';
-import {useRef, useState, useCallback} from "react";
+import {useRef, useState, useCallback, useEffect} from "react";
 import Map, {MapProvider, Popup, NavigationControl, GeolocateControl} from 'react-map-gl/maplibre';
 import LiveStationSource from "@/components/map/live-station-source";
 import {apiUrl} from "@/helpers/api-url";
@@ -19,6 +19,7 @@ export default function BeaconMap({children}) {
         zoom: 12
     });
     const [selectedStation, setSelectedStation] = useState(null);
+    const [hasPerformedInitialLoad, setHasPerformedInitialLoad] = useState(false);
     const [boundsBeforeSelection, setBoundsBeforeSelection] = useState(null);
 
     const mapMovedCallbackRef = useRef();
@@ -29,7 +30,8 @@ export default function BeaconMap({children}) {
         if (mapMovedCallbackRef.current) mapMovedCallbackRef.current();
     }
 
-    const gotoStation = ({beaconName, coordinates}) => {
+    function gotoStation({beaconName, coordinates}) {
+        console.log('gotoStation', beaconName, coordinates);
         let preLoadedStation = {loading: true};
         if (coordinates) {
             mapRef.current.easeTo({
@@ -50,12 +52,26 @@ export default function BeaconMap({children}) {
             .then(response => response.json())
             .then(data => {
                 if (!data) return;
+                if (!coordinates) {
+                    mapRef.current.easeTo({
+                        center: [data.longitude, data.latitude],
+                        zoom: 17
+                    });
+                }
                 setSelectedStation({
                     ...data,
                     loading: false
                 });
             });
     }
+
+    useEffect(() => {
+        if (!hasPerformedInitialLoad && pathname.startsWith('/station/')) {
+            const beaconName = pathname.split('/').pop();
+            gotoStation({beaconName});
+        }
+        setHasPerformedInitialLoad(true);
+    }, [pathname, hasPerformedInitialLoad, mapRef.current]);
 
     const onHover = useCallback(event => {
         const {features} = event;
@@ -107,7 +123,7 @@ export default function BeaconMap({children}) {
             mapRef.current.fitBounds(boundsBeforeSelection, {});
             setBoundsBeforeSelection(null);
         } else {
-            mapRef.current.setZoom(12);
+            mapRef.current.zoomTo(12);
         }
         router.back();
     }, [router, boundsBeforeSelection]);
@@ -116,7 +132,6 @@ export default function BeaconMap({children}) {
     if (selectedStation !== null && selectedStation.loading) {
         stationPopupContents = (<strong>Loading...</strong>);
     } else if (selectedStation !== null) {
-        console.log('selectedStation', selectedStation);
         stationPopupContents = (
             <div>
                 <strong>{selectedStation.station_name}</strong>
