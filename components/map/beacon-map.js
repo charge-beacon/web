@@ -66,11 +66,17 @@ export default function BeaconMap({children}) {
     }
 
     useEffect(() => {
+        // If the user navigates directly to a station, load the station
         if (!hasPerformedInitialLoad && pathname.startsWith('/station/')) {
             const beaconName = pathname.split('/').pop();
             gotoStation({beaconName});
+        } else if (selectedStation !== null && !pathname.startsWith('/station/')) {
+            // If the user navigates away from the station, close the station popup
+            onStationClose();
         }
         setHasPerformedInitialLoad(true);
+
+
     }, [pathname, hasPerformedInitialLoad, mapRef.current]);
 
     const onHover = useCallback(event => {
