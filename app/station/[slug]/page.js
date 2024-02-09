@@ -1,9 +1,15 @@
 import styles from './page.module.css';
+import {apiUrl} from "@/helpers/api-url";
+import EvStationDetails from "@/components/station";
 
-export default function StationPage() {
+async function getStationData(slug) {
+    const response = await fetch(`${apiUrl()}/station/${slug}.json`);
+    return response.json();
+}
+
+export default async function StationPage({params: {slug}}) {
+    const stationData = await getStationData(slug);
     return (
-        <div className={styles.content}>
-            <h1>Station</h1>
-        </div>
+        <EvStationDetails station={stationData}/>
     );
 }

@@ -8,8 +8,6 @@ export const metadata = {
 };
 
 export default function HomeLayout({children}) {
-
-
     return (
         <html lang="en">
             <body>
